@@ -187,15 +187,35 @@ export default function WeatherAdvisory({ demoMode }) {
 
   const handleLocate = () => {
     setLocating(true)
-    if (!navigator.geolocation) {
+
+    // Browsers only expose geolocation in a secure context (HTTPS or localhost).
+    // On plain http:// the API is missing or errors instantly, which is the #1
+    // reason "Use My Location" silently falls back to Hyderabad.
+    if (!navigator.geolocation || !window.isSecureContext) {
+      toast.error('Location needs a secure (HTTPS) connection. Showing Hyderabad instead.')
       fetchWeatherByCoords(17.385, 78.4867); setLocating(false); return
     }
+
     navigator.geolocation.getCurrentPosition(
-      pos => { fetchWeatherByCoords(pos.coords.latitude, pos.coords.longitude); setLocating(false) },
-      ()  => { fetchWeatherByCoords(17.385, 78.4867); setLocating(false); toast('Using default location: Hyderabad') },
+      pos => {
+        fetchWeatherByCoords(pos.coords.latitude, pos.coords.longitude)
+        setLocating(false)
+      },
+      err => {
+        // Surface *why* it failed instead of silently showing Hyderabad, so the
+        // user can fix it (e.g. grant the permission) rather than be confused.
+        const msg = {
+          1: 'Location permission denied. Enable it in your browser site settings, then try again.',
+          2: 'Location unavailable on this device. Showing Hyderabad instead.',
+          3: 'Location request timed out. Showing Hyderabad instead.',
+        }[err.code] || 'Could not get your location. Showing Hyderabad instead.'
+        toast.error(msg)
+        fetchWeatherByCoords(17.385, 78.4867)
+        setLocating(false)
+      },
       // Without a timeout, getCurrentPosition can hang forever (desktop/no-GPS/non-HTTPS),
       // leaving the spinner stuck on "Detecting...". Bail out after 10s to the default location.
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 600000 }
     )
   }
 

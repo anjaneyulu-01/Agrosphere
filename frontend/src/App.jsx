@@ -1,5 +1,6 @@
 import { useState, useEffect, useLayoutEffect } from 'react'
 import { Toaster } from 'react-hot-toast'
+import ErrorBoundary from './components/ErrorBoundary'
 import Navbar from './components/Navbar'
 import Hero from './components/Hero'
 import ProblemSolution from './components/ProblemSolution'
@@ -165,21 +166,21 @@ export default function App() {
         <Navbar demoMode={demoMode} />
 
         <main>
-          <section id="home">       <Hero /></section>
-          <section id="features">   <ProblemSolution /></section>
-          <section id="crop-doctor"><CropDoctor demoMode={demoMode} /></section>
-          <section id="weather">    <WeatherAdvisory demoMode={demoMode} /></section>
-          <section id="market">     <MandiPrices demoMode={demoMode} /></section>
-          <section id="irrigation"> <SmartIrrigation demoMode={demoMode} /></section>
-          <section id="schemes">    <GovernmentSchemes demoMode={demoMode} /></section>
-          <section id="ai-assistant"><AIAssistant demoMode={demoMode} /></section>
-          <section id="yield">      <YieldPrediction demoMode={demoMode} /></section>
-          <section id="soil">       <SoilAnalysis demoMode={demoMode} /></section>
-          <section id="livestock">  <LivestockHealth demoMode={demoMode} /></section>
-          <section id="insurance">  <InsuranceClaim demoMode={demoMode} /></section>
-          <section id="equipment">  <EquipmentRental /></section>
-          <section id="stats">      <Stats /></section>
-          <section id="testimonials"><Testimonials /></section>
+          <section id="home">       <ErrorBoundary name="Home"><Hero /></ErrorBoundary></section>
+          <section id="features">   <ErrorBoundary name="Features"><ProblemSolution /></ErrorBoundary></section>
+          <section id="crop-doctor"><ErrorBoundary name="Crop Doctor"><CropDoctor demoMode={demoMode} /></ErrorBoundary></section>
+          <section id="weather">    <ErrorBoundary name="Weather"><WeatherAdvisory demoMode={demoMode} /></ErrorBoundary></section>
+          <section id="market">     <ErrorBoundary name="Market"><MandiPrices demoMode={demoMode} /></ErrorBoundary></section>
+          <section id="irrigation"> <ErrorBoundary name="Irrigation"><SmartIrrigation demoMode={demoMode} /></ErrorBoundary></section>
+          <section id="schemes">    <ErrorBoundary name="Schemes"><GovernmentSchemes demoMode={demoMode} /></ErrorBoundary></section>
+          <section id="ai-assistant"><ErrorBoundary name="AI Assistant"><AIAssistant demoMode={demoMode} /></ErrorBoundary></section>
+          <section id="yield">      <ErrorBoundary name="Yield"><YieldPrediction demoMode={demoMode} /></ErrorBoundary></section>
+          <section id="soil">       <ErrorBoundary name="Soil"><SoilAnalysis demoMode={demoMode} /></ErrorBoundary></section>
+          <section id="livestock">  <ErrorBoundary name="Livestock"><LivestockHealth demoMode={demoMode} /></ErrorBoundary></section>
+          <section id="insurance">  <ErrorBoundary name="Insurance"><InsuranceClaim demoMode={demoMode} /></ErrorBoundary></section>
+          <section id="equipment">  <ErrorBoundary name="Equipment"><EquipmentRental /></ErrorBoundary></section>
+          <section id="stats">      <ErrorBoundary name="Stats"><Stats /></ErrorBoundary></section>
+          <section id="testimonials"><ErrorBoundary name="Testimonials"><Testimonials /></ErrorBoundary></section>
         </main>
 
         <Footer />
