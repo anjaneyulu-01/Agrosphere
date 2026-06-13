@@ -73,7 +73,7 @@ export default function YieldPrediction({ demoMode }) {
                   <label className="text-xs mb-1.5 block" style={{ color: 'var(--text-secondary)' }}>{f.label}</label>
                   {f.type === 'select' ? (
                     <select value={form[f.key]} onChange={e => setForm({ ...form, [f.key]: e.target.value })} className="input-dark w-full">
-                      {f.opts?.map(o => <option key={o} value={o.toLowerCase().replace(' ', '_')}>{o}</option>)}
+                      {f.opts?.map(o => <option key={o} value={o}>{o}</option>)}
                     </select>
                   ) : (
                     <input value={form[f.key]} onChange={e => setForm({ ...form, [f.key]: e.target.value })} className="input-dark w-full" />

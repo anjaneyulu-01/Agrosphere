@@ -1,4 +1,5 @@
 import os
+import asyncio
 import httpx
 from pathlib import Path
 from dotenv import load_dotenv
@@ -97,7 +98,17 @@ async def _call_gemini_api(prompt: str, system_prompt: str) -> str:
             "gemini-1.5-flash-latest",
             system_instruction=system_prompt or FARMING_SYSTEM_PROMPT,
         )
-        response = model.generate_content(prompt)
+        # generate_content is a *blocking* call with no built-in timeout. Run it in a
+        # worker thread (so it doesn't freeze the async event loop) and cap it at 30s
+        # so a hung AI request can never leave the frontend loading forever.
+        response = await asyncio.wait_for(
+            asyncio.to_thread(
+                model.generate_content,
+                prompt,
+                request_options={"timeout": 30},
+            ),
+            timeout=35,
+        )
         return response.text
     except Exception as e:
         print(f"[Gemini Exception] {e}")

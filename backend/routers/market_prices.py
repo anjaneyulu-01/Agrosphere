@@ -1,4 +1,5 @@
 import os
+import asyncio
 import requests
 import random
 from fastapi import APIRouter, Query
@@ -55,7 +56,8 @@ async def get_market_prices(
     if AGMARKNET_KEY and not demo_mode and crop:
         try:
             url = f"https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070?api-key={AGMARKNET_KEY}&format=json&filters[commodity]={crop}&limit=20"
-            resp = requests.get(url, timeout=8)
+            # Blocking call → run in a worker thread so it doesn't freeze the event loop.
+            resp = await asyncio.to_thread(requests.get, url, timeout=8)
             if resp.status_code == 200:
                 data = resp.json()
                 records = data.get("records", [])

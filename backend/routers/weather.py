@@ -1,5 +1,7 @@
 import os
 import json
+import copy
+import asyncio
 import datetime
 import requests
 from collections import defaultdict
@@ -107,6 +109,17 @@ def _compute_alerts(current_icon: str, forecast: list) -> list:
     return alerts
 
 
+def _demo_payload(advisory: list | None = None) -> dict:
+    """Build a fresh demo response. Returns a deep copy so we never mutate the shared
+    DEMO_WEATHER global (which would leak state — e.g. a stale 'error' key — across
+    requests and race under concurrency)."""
+    data = copy.deepcopy(DEMO_WEATHER)
+    if advisory:
+        data["advisory"] = advisory
+    data["alerts"] = _compute_alerts(data["current"]["icon"], data["forecast"])
+    return data
+
+
 def _build_advisory_prompt(crop: str, lat: float, lon: float, city: str, summary: str) -> str:
     return (
         f"For a farmer growing {crop} near {city} (lat:{lat:.2f}, lon:{lon:.2f}), "
@@ -130,49 +143,41 @@ async def get_weather(
                 "temp 28°C, humidity 68%, partly cloudy with rain expected in 2 days"
             )
         )
+        advisory = None
         try:
             s, e = advisory_raw.find("["), advisory_raw.rfind("]") + 1
-            DEMO_WEATHER["advisory"] = json.loads(advisory_raw[s:e])
+            advisory = json.loads(advisory_raw[s:e])
         except Exception:
             pass
 
-        DEMO_WEATHER["alerts"] = _compute_alerts(
-            DEMO_WEATHER["current"]["icon"],
-            DEMO_WEATHER["forecast"],
-        )
-        return DEMO_WEATHER
+        return _demo_payload(advisory)
 
     # ── Live data via free-tier OWM APIs ──
     try:
         base = "http://api.openweathermap.org"
         key  = f"appid={OPENWEATHER_KEY}&units=metric"
 
-        # Current weather
-        curr_resp = requests.get(
-            f"{base}/data/2.5/weather?lat={lat}&lon={lon}&{key}", timeout=10
+        # Current weather. requests.get is blocking, so run it in a worker thread
+        # to avoid freezing the async event loop while the HTTP call is in flight.
+        curr_resp = await asyncio.to_thread(
+            requests.get, f"{base}/data/2.5/weather?lat={lat}&lon={lon}&{key}", timeout=10
         )
         if curr_resp.status_code != 200:
-            DEMO_WEATHER["alerts"] = _compute_alerts(
-                DEMO_WEATHER["current"]["icon"], DEMO_WEATHER["forecast"]
-            )
-            return DEMO_WEATHER
+            return _demo_payload()
         curr = curr_resp.json()
 
         # 5-day / 3-hour forecast
-        fc_resp = requests.get(
-            f"{base}/data/2.5/forecast?lat={lat}&lon={lon}&{key}&cnt=40", timeout=10
+        fc_resp = await asyncio.to_thread(
+            requests.get, f"{base}/data/2.5/forecast?lat={lat}&lon={lon}&{key}&cnt=40", timeout=10
         )
         if fc_resp.status_code != 200:
-            DEMO_WEATHER["alerts"] = _compute_alerts(
-                DEMO_WEATHER["current"]["icon"], DEMO_WEATHER["forecast"]
-            )
-            return DEMO_WEATHER
+            return _demo_payload()
         fc = fc_resp.json()
 
         # Reverse geocode
         city = "Your Location"
-        geo_resp = requests.get(
-            f"{base}/geo/1.0/reverse?lat={lat}&lon={lon}&limit=1&{key}", timeout=5
+        geo_resp = await asyncio.to_thread(
+            requests.get, f"{base}/geo/1.0/reverse?lat={lat}&lon={lon}&limit=1&{key}", timeout=5
         )
         if geo_resp.status_code == 200:
             geo = geo_resp.json()
@@ -254,8 +259,7 @@ async def get_weather(
         }
 
     except Exception as exc:
-        DEMO_WEATHER["error"]  = str(exc)
-        DEMO_WEATHER["alerts"] = _compute_alerts(
-            DEMO_WEATHER["current"]["icon"], DEMO_WEATHER["forecast"]
-        )
-        return DEMO_WEATHER
+        print(f"[Weather Exception] {exc}")
+        payload = _demo_payload()
+        payload["error"] = str(exc)
+        return payload

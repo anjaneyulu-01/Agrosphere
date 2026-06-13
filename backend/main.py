@@ -3,7 +3,8 @@ load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import crop_disease, weather, market_prices, soil_analysis, yield_prediction, livestock, chatbot, schemes, fertilizer, insurance
+from routers import crop_disease, weather, market_prices, soil_analysis, yield_prediction, livestock, chatbot, schemes, fertilizer, insurance, auth
+from utils.database import ensure_indexes
 
 app = FastAPI(
     title="AgroSphere API",
@@ -18,6 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(crop_disease.router, prefix="/api/crop-disease", tags=["Crop Disease"])
 app.include_router(weather.router, prefix="/api/weather", tags=["Weather"])
 app.include_router(market_prices.router, prefix="/api/market", tags=["Market Prices"])
@@ -28,6 +30,11 @@ app.include_router(chatbot.router, prefix="/api/chat", tags=["AI Chatbot"])
 app.include_router(schemes.router, prefix="/api/schemes", tags=["Government Schemes"])
 app.include_router(fertilizer.router, prefix="/api/fertilizer", tags=["Fertilizer"])
 app.include_router(insurance.router, prefix="/api/insurance", tags=["Insurance"])
+
+@app.on_event("startup")
+async def on_startup():
+    await ensure_indexes()
+
 
 @app.get("/")
 def root():

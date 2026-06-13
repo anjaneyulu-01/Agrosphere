@@ -192,7 +192,10 @@ export default function WeatherAdvisory({ demoMode }) {
     }
     navigator.geolocation.getCurrentPosition(
       pos => { fetchWeatherByCoords(pos.coords.latitude, pos.coords.longitude); setLocating(false) },
-      ()  => { fetchWeatherByCoords(17.385, 78.4867); setLocating(false); toast('Using default location: Hyderabad') }
+      ()  => { fetchWeatherByCoords(17.385, 78.4867); setLocating(false); toast('Using default location: Hyderabad') },
+      // Without a timeout, getCurrentPosition can hang forever (desktop/no-GPS/non-HTTPS),
+      // leaving the spinner stuck on "Detecting...". Bail out after 10s to the default location.
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 }
     )
   }
 

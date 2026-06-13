@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, Leaf, Sun, Moon } from 'lucide-react'
+import { Menu, X, Leaf, Sun, Moon, LogOut } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { useAuth } from '../context/AuthContext'
+import AuthModal from './AuthModal'
 
 const navLinks = [
   { label: 'Home',      href: '#home' },
@@ -21,6 +24,24 @@ export default function Navbar({ demoMode }) {
   const [isDark, setIsDark] = useState(
     () => localStorage.getItem('agro-theme') !== 'light'
   )
+
+  const { user, isAuthenticated, logout } = useAuth()
+  const [authOpen, setAuthOpen]   = useState(false)
+  const [authMode, setAuthMode]   = useState('login')
+
+  const openAuth = (mode) => {
+    setAuthMode(mode)
+    setAuthOpen(true)
+    setOpen(false)
+  }
+
+  const handleLogout = () => {
+    logout()
+    setOpen(false)
+    toast.success('Logged out')
+  }
+
+  const firstName = user?.name?.split(' ')[0] || ''
 
   /* ── Scroll detection ── */
   useEffect(() => {
@@ -174,15 +195,53 @@ export default function Navbar({ demoMode }) {
               </span>
             )}
 
-            {/* CTA */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => handleNav('#crop-doctor')}
-              className="btn-primary text-sm py-2 px-5"
-            >
-              Get Started Free
-            </motion.button>
+            {/* Auth */}
+            {isAuthenticated ? (
+              <div className="flex items-center gap-2">
+                <div
+                  className="flex items-center gap-2 rounded-xl border px-3 py-1.5"
+                  style={{ borderColor: 'var(--border)' }}
+                >
+                  <div
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
+                    style={{ background: 'var(--primary)', color: 'var(--primary-text)' }}
+                  >
+                    {firstName.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                    {firstName}
+                  </span>
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.08 }}
+                  whileTap={{ scale: 0.92 }}
+                  onClick={handleLogout}
+                  className="w-9 h-9 rounded-xl flex items-center justify-center border"
+                  style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+                  title="Log out"
+                >
+                  <LogOut className="w-4 h-4" />
+                </motion.button>
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={() => openAuth('login')}
+                  className="text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  Log In
+                </button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => openAuth('signup')}
+                  className="btn-primary text-sm py-2 px-5"
+                >
+                  Sign Up
+                </motion.button>
+              </>
+            )}
           </div>
 
           {/* ── Mobile hamburger ── */}
@@ -253,13 +312,45 @@ export default function Navbar({ demoMode }) {
                   </button>
                 ))}
               </div>
-              <button onClick={() => handleNav('#crop-doctor')} className="btn-primary mt-3 text-center">
-                Get Started Free
-              </button>
+              {isAuthenticated ? (
+                <div className="mt-3 pt-3 border-t flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
+                      style={{ background: 'var(--primary)', color: 'var(--primary-text)' }}
+                    >
+                      {firstName.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{firstName}</span>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-lg border"
+                    style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+                  >
+                    <LogOut className="w-4 h-4" /> Log out
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-3 pt-3 border-t flex flex-col gap-2" style={{ borderColor: 'var(--border)' }}>
+                  <button
+                    onClick={() => openAuth('login')}
+                    className="text-center py-2.5 rounded-xl border text-sm font-medium"
+                    style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+                  >
+                    Log In
+                  </button>
+                  <button onClick={() => openAuth('signup')} className="btn-primary text-center">
+                    Sign Up
+                  </button>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} initialMode={authMode} />
     </motion.nav>
   )
 }

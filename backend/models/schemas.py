@@ -1,5 +1,27 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List
+
+
+class SignupRequest(BaseModel):
+    name: str = Field(min_length=2, max_length=80)
+    email: EmailStr
+    password: str = Field(min_length=6, max_length=128)
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class UserResponse(BaseModel):
+    id: str
+    name: str
+    email: EmailStr
+
+
+class AuthResponse(BaseModel):
+    token: str
+    user: UserResponse
 
 
 class ChatRequest(BaseModel):

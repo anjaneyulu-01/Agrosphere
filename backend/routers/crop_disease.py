@@ -1,4 +1,5 @@
 import os
+import copy
 import json
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from utils.huggingface import classify_image_hf, call_gemini
@@ -91,12 +92,16 @@ async def detect_disease(
         end = gemini_response.rfind("}") + 1
         data = json.loads(gemini_response[start:end])
     except Exception:
-        data = DISEASE_TREATMENTS.get(label, DISEASE_TREATMENTS["Healthy"])
+        # copy.deepcopy so we never mutate the shared DISEASE_TREATMENTS template
+        # (a reference + in-place edits would corrupt it for all later requests).
+        data = copy.deepcopy(DISEASE_TREATMENTS.get(label, DISEASE_TREATMENTS["Healthy"]))
         data["disease_name"] = label.replace("___", " - ").replace("_", " ")
         data["severity"] = "Medium"
         data["cause"] = "Fungal/bacterial pathogen"
         data["description"] = f"Disease detected: {label}"
         data["urgency"] = "Within 48 hours"
+        # template uses "crop_loss"; the response reads "crop_loss_estimate"
+        data["crop_loss_estimate"] = data.get("crop_loss", "Unknown")
 
     return {
         "disease": data.get("disease_name", label),
