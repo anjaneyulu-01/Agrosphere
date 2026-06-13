@@ -1,0 +1,12 @@
+{
+  "name": "AgroSphere — Smart Farming",
+  "short_name": "AgroSphere",
+  "description": "AI-powered smart farming platform for Indian farmers",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0f0a",
+  "theme_color": "#00ff88",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
