@@ -23,6 +23,7 @@ pip-delete-this-directory.txt
 .env
 .env.*
 !.env.example
+!.env.production
 *.pem
 *.key
 
