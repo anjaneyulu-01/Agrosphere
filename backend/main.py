@@ -42,7 +42,7 @@ def root():
 def health():
     return {"status": "healthy"}
 
-@app.get("/ping")
+@app.api_route("/ping", methods=["GET", "HEAD"])
 def ping():
     return {"status": "ok", "message": "pong"}
 
