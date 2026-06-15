@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Search, TrendingUp, TrendingDown, Minus, Star, Loader2 } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { getMarketPrices } from '../api'
+import { registerAgentAction } from '../agent/agentBus'
 import toast from 'react-hot-toast'
 
 const TrendIcon = ({ trend }) => {
@@ -37,14 +38,36 @@ export default function MandiPrices({ demoMode }) {
       const res = await getMarketPrices(search, state, demoMode)
       setData(res)
       if (res.prices?.length) setSelected(res.prices[0])
+      return res
     } catch {
       toast.error('Failed to fetch market prices')
+      return null
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => { if (demoMode) fetchPrices() }, [demoMode])
+
+  // ── Expose to the AI agent ──
+  // Accepts { crop } pulled from the farmer's question so we fetch and show
+  // that crop's prices, not just whatever is in the search box.
+  useEffect(() => registerAgentAction('market.run', async (params) => {
+    const cropQuery = params?.crop || search
+    if (params?.crop) setCrop(params.crop)   // reflect it in the search box
+    setLoading(true)
+    try {
+      const res = await getMarketPrices(cropQuery, state, demoMode)
+      setData(res)
+      if (res.prices?.length) setSelected(res.prices[0])
+      return res
+    } catch {
+      toast.error('Failed to fetch market prices')
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }), [search, state, demoMode])
 
   const chartData = data ? [
     ...(data.price_history?.slice(-14) || []).map(p => ({ ...p, type: 'actual' })),
@@ -79,6 +102,7 @@ export default function MandiPrices({ demoMode }) {
             ))}
           </select>
           <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+            data-agent="market-run"
             onClick={fetchPrices} disabled={loading} className="btn-primary flex items-center gap-2 disabled:opacity-50">
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
             {loading ? 'Loading...' : 'Search Prices'}

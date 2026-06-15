@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Layers, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { analyzeSoil } from '../api'
+import { registerAgentAction } from '../agent/agentBus'
 import toast from 'react-hot-toast'
 
 const gaugeColor = (score) => {
@@ -64,12 +65,17 @@ export default function SoilAnalysis({ demoMode }) {
       const data = await analyzeSoil(form, demoMode)
       setResult(data)
       toast.success(`Soil health: ${data.grade} (${data.health_score}/100)`)
+      return data
     } catch {
       toast.error('Analysis failed. Enable Demo Mode.')
+      return null
     } finally {
       setLoading(false)
     }
   }
+
+  // ── Expose to the AI agent ──
+  useEffect(() => registerAgentAction('soil.run', analyze), [form, demoMode])
 
   return (
     <section className="py-24 relative overflow-hidden" style={{ background: 'var(--bg-base)' }}>
@@ -106,6 +112,7 @@ export default function SoilAnalysis({ demoMode }) {
               ))}
             </div>
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+              data-agent="soil-run"
               onClick={analyze} disabled={loading}
               className="btn-primary w-full py-3 flex items-center justify-center gap-2 mt-5 disabled:opacity-50">
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Layers className="w-5 h-5" />}

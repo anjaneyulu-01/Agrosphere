@@ -505,3 +505,15 @@ html.light .recharts-tooltip-wrapper .recharts-default-tooltip {
 
 /* Toaster */
 html.light .react-hot-toast { background: #fff !important; color: #0f172a !important; }
+
+/* ── AI Agent: highlight a button while the agent "clicks" it ── */
+@keyframes agent-target-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 55%, transparent); }
+  50%      { box-shadow: 0 0 0 8px color-mix(in srgb, var(--primary) 0%, transparent); }
+}
+.agent-target-pulse {
+  animation: agent-target-pulse 1s ease-out 2;
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+  border-radius: 12px;
+}

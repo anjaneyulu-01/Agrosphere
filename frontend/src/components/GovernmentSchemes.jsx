@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Building2, ChevronRight, ExternalLink, Loader2, CheckCircle2 } from 'lucide-react'
 import { findSchemes } from '../api'
+import { registerAgentAction } from '../agent/agentBus'
 import toast from 'react-hot-toast'
 
 const STATES = ['Andhra Pradesh', 'Telangana', 'Maharashtra', 'Punjab', 'Haryana', 'Uttar Pradesh', 'Gujarat', 'Karnataka', 'Tamil Nadu', 'Madhya Pradesh']
@@ -33,12 +34,22 @@ export default function GovernmentSchemes({ demoMode }) {
       setResult(data)
       setStep(4)
       toast.success(`Found ${data.matched_schemes?.length || 0} matching schemes!`)
+      return data
     } catch {
       toast.error('Failed to fetch schemes. Enable Demo Mode.')
+      return null
     } finally {
       setLoading(false)
     }
   }
+
+  // ── Expose to the AI agent ──
+  // Walk the farmer visibly to the final step, then find their schemes.
+  useEffect(() => registerAgentAction('schemes.run', async () => {
+    setStep(3)
+    await new Promise(r => setTimeout(r, 600))
+    return handleFind()
+  }), [form, demoMode])
 
   return (
     <section className="py-24 relative overflow-hidden" style={{ background: 'var(--bg-base)' }}>

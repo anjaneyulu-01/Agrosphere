@@ -12,9 +12,9 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GROQ_API_KEY   = os.getenv("GROQ_API_KEY", "")
 
 # Print key status on startup so you can see in terminal
-print(f"[AgroSphere] HF key     : {'✓ loaded' if HF_API_KEY     else '✗ missing'}")
-print(f"[AgroSphere] Gemini key : {'✓ loaded' if GEMINI_API_KEY else '✗ missing'}")
-print(f"[AgroSphere] Groq key   : {'✓ loaded' if GROQ_API_KEY   else '✗ missing'}")
+print(f"[AgroSphere] HF key     : {'[loaded]' if HF_API_KEY     else '[missing]'}")
+print(f"[AgroSphere] Gemini key : {'[loaded]' if GEMINI_API_KEY else '[missing]'}")
+print(f"[AgroSphere] Groq key   : {'[loaded]' if GROQ_API_KEY   else '[missing]'}")
 
 HF_BASE_URL = "https://api-inference.huggingface.co/models"
 

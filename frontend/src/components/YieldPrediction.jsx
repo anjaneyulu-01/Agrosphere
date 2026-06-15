@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { TrendingUp, Loader2 } from 'lucide-react'
 import { predictYield } from '../api'
+import { registerAgentAction } from '../agent/agentBus'
 import toast from 'react-hot-toast'
 
 const ChartTooltip = ({ active, payload, label }) => {
@@ -30,12 +31,17 @@ export default function YieldPrediction({ demoMode }) {
       const data = await predictYield(form, demoMode)
       setResult(data)
       toast.success('Yield prediction complete!')
+      return data
     } catch {
       toast.error('Prediction failed. Enable Demo Mode.')
+      return null
     } finally {
       setLoading(false)
     }
   }
+
+  // ── Expose to the AI agent ──
+  useEffect(() => registerAgentAction('yield.run', predict), [form, demoMode])
 
   const chartData = result ? [
     { name: 'Your Farm', yield: result.predicted_yield_per_acre },
@@ -101,6 +107,7 @@ export default function YieldPrediction({ demoMode }) {
             </div>
 
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+              data-agent="yield-run"
               onClick={predict} disabled={loading}
               className="btn-primary w-full py-3 flex items-center justify-center gap-2 disabled:opacity-50">
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <TrendingUp className="w-5 h-5" />}

@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Shield, CheckCircle2, Loader2, ExternalLink } from 'lucide-react'
 import { getInsuranceAssistance } from '../api'
+import { registerAgentAction } from '../agent/agentBus'
 import toast from 'react-hot-toast'
 
 export default function InsuranceClaim({ demoMode }) {
@@ -17,12 +18,21 @@ export default function InsuranceClaim({ demoMode }) {
       setResult(data)
       setStep(3)
       toast.success('Claim assessment complete!')
+      return data
     } catch {
       toast.error('Failed. Enable Demo Mode.')
+      return null
     } finally {
       setLoading(false)
     }
   }
+
+  // ── Expose to the AI agent ──
+  useEffect(() => registerAgentAction('insurance.run', async () => {
+    setStep(2)
+    await new Promise(r => setTimeout(r, 600))
+    return submit()
+  }), [form, demoMode])
 
   const damageColor = form.damage_percentage > 70 ? '#f87171' : form.damage_percentage > 40 ? 'var(--secondary)' : 'var(--primary)'
 

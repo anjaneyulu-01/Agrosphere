@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MapPin, Wind, Droplets, Eye, Thermometer, Loader2, RefreshCw, X, Bell, BellOff } from 'lucide-react'
 import { getWeather } from '../api'
+import { registerAgentAction } from '../agent/agentBus'
 import toast from 'react-hot-toast'
 
 /* ─── weather icon map ─── */
@@ -178,12 +179,38 @@ export default function WeatherAdvisory({ demoMode }) {
     try {
       const data = await getWeather(lat, lon, crop, demoMode)
       setWeather(data)
+      return data
     } catch {
       toast.error('Failed to fetch weather. Try Demo Mode.')
+      return null
     } finally {
       setLoading(false)
     }
   }
+
+  // Promise-based locate used by both the button and the AI agent.
+  // Resolves with the FULL weather payload so the agent can answer
+  // specific questions (rain today? temperature? wind?…).
+  const locateAndFetch = () => new Promise((resolve) => {
+    const finish = (data) => resolve(data || null)
+
+    setLocating(true)
+    const fallback = () => fetchWeatherByCoords(17.385, 78.4867).then(finish).finally(() => setLocating(false))
+
+    if (!navigator.geolocation || !window.isSecureContext) { fallback(); return }
+
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        fetchWeatherByCoords(pos.coords.latitude, pos.coords.longitude)
+          .then(finish).finally(() => setLocating(false))
+      },
+      () => { fallback() },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 600000 }
+    )
+  })
+
+  // ── Expose "Use My Location" to the AI agent ──
+  useEffect(() => registerAgentAction('weather.useLocation', locateAndFetch), [crop, demoMode])
 
   const handleLocate = () => {
     setLocating(true)
@@ -253,6 +280,7 @@ export default function WeatherAdvisory({ demoMode }) {
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }} className="flex flex-wrap gap-3 justify-center mb-8">
           <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+            data-agent="weather-locate"
             onClick={handleLocate} disabled={loading || locating}
             className="btn-primary flex items-center gap-2 disabled:opacity-50">
             {locating ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}

@@ -1,8 +1,9 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Upload, Leaf, AlertCircle, CheckCircle2, Phone, RefreshCw } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { detectDisease } from '../api'
+import { registerAgentAction } from '../agent/agentBus'
 import confetti from 'canvas-confetti'
 
 const crops = ['Tomato', 'Rice', 'Wheat', 'Cotton', 'Maize', 'Potato', 'Groundnut', 'Chilli']
@@ -51,13 +52,23 @@ export default function CropDoctor({ demoMode }) {
       } else {
         toast.error(`Disease detected: ${data.disease}`)
       }
+      return { ...data, crop }
     } catch {
       setError('Failed to analyze image. Please try Demo Mode or check your connection.')
       toast.error('Analysis failed')
+      return { error: true }
     } finally {
       setLoading(false)
     }
   }
+
+  // ── Expose to the AI agent ──
+  // Diagnosis needs a photo (unless Demo Mode). When none is uploaded, tell the
+  // agent so it can guide the farmer to add one instead of failing silently.
+  useEffect(() => registerAgentAction('cropdoctor.run', () => {
+    if (!imageFile && !demoMode) return { needUpload: true }
+    return handleDiagnose()
+  }), [imageFile, crop, demoMode])
 
   const sev = result ? severityConfig[result.severity] || severityConfig.Medium : null
 
@@ -136,6 +147,7 @@ export default function CropDoctor({ demoMode }) {
             </div>
 
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+              data-agent="crop-doctor-run"
               onClick={handleDiagnose} disabled={loading}
               className="btn-primary w-full py-4 text-lg flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed">
               {loading ? (

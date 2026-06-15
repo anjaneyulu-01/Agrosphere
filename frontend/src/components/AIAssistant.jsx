@@ -2,17 +2,22 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Send, Mic, MicOff, Bot, User, Loader2, Volume2, VolumeX, Square } from 'lucide-react'
 import { chatWithAI } from '../api'
+import { matchIntent } from '../agent/agentIntents'
+import { runAgentPlan } from '../agent/agentEngine'
 import toast from 'react-hot-toast'
 
 /* ─────────────────────────── constants ─────────────────────────── */
 
+// Tapping these shows the agent operating the site, plus a couple of
+// plain Q&A prompts. (Words like "weather", "mandi price", "soil",
+// "schemes" trigger the agent; the others get a normal AI reply.)
 const QUICK_QUESTIONS = [
+  'Show me the weather',
+  'Check mandi prices',
+  'Find government schemes for me',
+  'Analyze my soil',
+  'Predict my yield',
   'My tomato leaves are turning yellow',
-  'When should I sow wheat in Telangana?',
-  'Best fertilizer for rice crop',
-  'PM-KISAN next installment date',
-  'How to control aphids in cotton?',
-  'Rainfall forecast this week',
 ]
 
 const LANG_CONFIG = {
@@ -26,6 +31,14 @@ const TTS_OPTS = {
   en: { rate: 0.92, pitch: 1.05 },
   hi: { rate: 0.82, pitch: 1.0  },
   te: { rate: 0.80, pitch: 0.98 },
+}
+
+// Spoken/typed intro when the assistant switches into "agent" mode and
+// starts operating the website itself.
+const AGENT_INTRO = {
+  en: '🤖 On it! Let me open that and do it for you on the website…',
+  hi: '🤖 ठीक है! मैं इसे वेबसाइट पर आपके लिए खोल कर करता हूँ…',
+  te: '🤖 సరే! నేను దాన్ని వెబ్‌సైట్‌లో మీ కోసం తెరిచి చేస్తాను…',
 }
 
 const DEMO_REPLIES = {
@@ -204,6 +217,32 @@ export default function AIAssistant({ demoMode }) {
     setInput('')
     setInterimText('')
     setMessages(prev => [...prev, { role: 'user', content: trimmed, lang: activeLang }])
+
+    // ── Agent mode ──
+    // If the request maps to something the agent can DO on the site
+    // (e.g. show weather), operate the website instead of just replying.
+    const intent = matchIntent(trimmed)
+    if (intent) {
+      const intro = AGENT_INTRO[activeLang] || AGENT_INTRO.en
+      setMessages(prev => [...prev, { role: 'assistant', content: intro, lang: activeLang, source: 'AgroSphere Agent' }])
+      speak(intro, activeLang)
+      try {
+        const res = await runAgentPlan(intent, activeLang, trimmed, {
+          onNarrate: (text) =>
+            setMessages(prev => [...prev, { role: 'assistant', content: text, lang: activeLang, source: 'AgroSphere Agent' }]),
+          onSpeak: (text, l) => speak(text, l),
+        })
+        if (!res.ok) throw new Error(res.error)
+      } catch {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: "⚠️ I couldn't complete that on the page. You can do it manually, or ask me again.",
+          lang: activeLang, source: 'AgroSphere Agent',
+        }])
+      }
+      return
+    }
+
     setLoading(true)
 
     try {

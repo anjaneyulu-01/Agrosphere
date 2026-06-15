@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Droplets, Calculator, Loader2 } from 'lucide-react'
+import { registerAgentAction } from '../agent/agentBus'
 import toast from 'react-hot-toast'
 
 const CROP_WATER   = { Rice: 6, Wheat: 3, Maize: 4, Cotton: 5, Tomato: 4.5, Sugarcane: 8, Groundnut: 3.5, Chilli: 4 }
@@ -37,7 +38,8 @@ export default function SmartIrrigation({ demoMode }) {
   const [result,  setResult]  = useState(null)
   const [loading, setLoading] = useState(false)
 
-  const calculate = () => {
+  // Returns a promise so the AI agent can await the computed plan.
+  const calculate = () => new Promise(resolve => {
     setLoading(true)
     setTimeout(() => {
       const base = (CROP_WATER[form.crop] || 4) * (SOIL_FACTOR[form.soil_type] || 1)
@@ -59,11 +61,16 @@ export default function SmartIrrigation({ demoMode }) {
         }
       })
 
-      setResult({ water_needed: totalWater, water_per_acre: Math.round(waterPerAcre), next_irrigation_days: nextDays, saving_pct: saving, traditional_usage: traditional, schedule })
+      const res = { water_needed: totalWater, water_per_acre: Math.round(waterPerAcre), next_irrigation_days: nextDays, saving_pct: saving, traditional_usage: traditional, schedule }
+      setResult(res)
       setLoading(false)
       toast.success(`Irrigation plan calculated! Save ${saving}% water.`)
+      resolve(res)
     }, 1200)
-  }
+  })
+
+  // ── Expose to the AI agent ──
+  useEffect(() => registerAgentAction('irrigation.run', calculate), [form])
 
   const moistureVal = form.soil_moisture_pct
   const moistureStyle = moistureVal < 30
@@ -137,6 +144,7 @@ export default function SmartIrrigation({ demoMode }) {
               </div>
 
               <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                data-agent="irrigation-run"
                 onClick={calculate} disabled={loading}
                 className="btn-primary w-full py-3 flex items-center justify-center gap-2 disabled:opacity-50">
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Droplets className="w-5 h-5" />}

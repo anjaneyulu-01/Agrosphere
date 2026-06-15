@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Heart, Loader2, AlertCircle, Phone } from 'lucide-react'
 import { diagnoseLivestock } from '../api'
+import { registerAgentAction } from '../agent/agentBus'
 import toast from 'react-hot-toast'
 
 const ANIMALS  = ['Cow', 'Buffalo', 'Goat', 'Sheep', 'Poultry', 'Pig']
@@ -23,19 +24,34 @@ export default function LivestockHealth({ demoMode }) {
 
   const toggleSymptom = (s) => setSymptoms(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])
 
-  const diagnose = async () => {
-    if (symptoms.length === 0) { toast.error('Select at least one symptom'); return }
+  const runDiagnosis = async (syms) => {
     setLoading(true)
     try {
-      const data = await diagnoseLivestock({ animal_type: animal, symptoms: symptoms.map(s => s.toLowerCase()) }, demoMode)
+      const data = await diagnoseLivestock({ animal_type: animal, symptoms: syms.map(s => s.toLowerCase()) }, demoMode)
       setResult(data)
       toast.success('Diagnosis complete')
+      return data
     } catch {
       toast.error('Diagnosis failed. Enable Demo Mode.')
+      return null
     } finally {
       setLoading(false)
     }
   }
+
+  const diagnose = () => {
+    if (symptoms.length === 0) { toast.error('Select at least one symptom'); return }
+    return runDiagnosis(symptoms)
+  }
+
+  // ── Expose to the AI agent ──
+  // If the farmer hasn't picked symptoms, start with a common one so the
+  // agent can still demonstrate a diagnosis.
+  useEffect(() => registerAgentAction('livestock.run', () => {
+    let syms = symptoms
+    if (syms.length === 0) { syms = ['Fever']; setSymptoms(syms) }
+    return runDiagnosis(syms)
+  }), [animal, symptoms, demoMode])
 
   const sev = result ? severityStyle[result.severity] || severityStyle.Medium : null
 
@@ -99,6 +115,7 @@ export default function LivestockHealth({ demoMode }) {
             </div>
 
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+              data-agent="livestock-run"
               onClick={diagnose} disabled={loading}
               className="btn-primary w-full py-3 flex items-center justify-center gap-2 disabled:opacity-50">
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Heart className="w-5 h-5" />}

@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Tractor, Star, MapPin, Calendar, Filter, Search } from 'lucide-react'
+import { registerAgentAction } from '../agent/agentBus'
 
 const fadeInUp = { hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } }
 
@@ -24,6 +25,13 @@ export default function EquipmentRental() {
     (filter === 'All' || e.type === filter) &&
     (search === '' || e.name.toLowerCase().includes(search.toLowerCase()))
   )
+
+  // ── Expose to the AI agent ──
+  useEffect(() => registerAgentAction('equipment.run', () => {
+    const avail = EQUIPMENT.filter(e => e.available)
+    const nearest = [...avail].sort((a, b) => a.distance - b.distance)[0]
+    return { available_count: avail.length, nearest }
+  }), [])
 
   return (
     <section className="py-24 bg-[#0a0f0a] relative overflow-hidden">
