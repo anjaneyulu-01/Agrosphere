@@ -120,6 +120,29 @@ def _demo_payload(advisory: list | None = None) -> dict:
     return data
 
 
+def _normalize_tips(tips) -> list[str]:
+    """Force the AI advisory into a flat list of plain strings.
+
+    The model is asked for an array of strings but sometimes returns objects
+    like {"advice": "..."}. The frontend renders each item directly, so a
+    non-string would crash React. Coerce every item to a string here."""
+    if not isinstance(tips, list):
+        return []
+    out: list[str] = []
+    for t in tips:
+        if isinstance(t, str):
+            text = t
+        elif isinstance(t, dict):
+            text = (t.get("advice") or t.get("tip") or t.get("text")
+                    or t.get("message") or next((v for v in t.values() if isinstance(v, str)), ""))
+        else:
+            text = str(t)
+        text = (text or "").strip()
+        if text:
+            out.append(text)
+    return out
+
+
 def _build_advisory_prompt(crop: str, lat: float, lon: float, city: str, summary: str) -> str:
     return (
         f"For a farmer growing {crop} near {city} (lat:{lat:.2f}, lon:{lon:.2f}), "
@@ -146,7 +169,7 @@ async def get_weather(
         advisory = None
         try:
             s, e = advisory_raw.find("["), advisory_raw.rfind("]") + 1
-            advisory = json.loads(advisory_raw[s:e])
+            advisory = _normalize_tips(json.loads(advisory_raw[s:e])) or None
         except Exception:
             pass
 
@@ -240,8 +263,10 @@ async def get_weather(
         advisory_raw = await call_gemini(_build_advisory_prompt(crop, lat, lon, city, summary))
         try:
             s, e = advisory_raw.find("["), advisory_raw.rfind("]") + 1
-            tips = json.loads(advisory_raw[s:e])
+            tips = _normalize_tips(json.loads(advisory_raw[s:e]))
         except Exception:
+            tips = []
+        if not tips:
             tips = [
                 "Monitor your crops regularly",
                 "Check soil moisture levels",

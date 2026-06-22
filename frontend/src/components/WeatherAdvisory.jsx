@@ -17,6 +17,18 @@ const weatherIcons = {
 const pestRiskColor = (r) => r === 'Low' ? 'var(--primary)' : r === 'Medium' ? 'var(--secondary)' : '#f87171'
 const pestRiskWidth = (r) => r === 'Low' ? '25%' : r === 'Medium' ? '55%' : '85%'
 
+// The AI advisory is meant to be an array of strings, but the model
+// occasionally returns objects like { advice: "..." }. Coerce any shape to a
+// plain string so React never tries to render a raw object (which crashes).
+const tipText = (tip) => {
+  if (typeof tip === 'string') return tip
+  if (tip && typeof tip === 'object') {
+    return tip.advice || tip.tip || tip.text || tip.message ||
+           Object.values(tip).find(v => typeof v === 'string') || ''
+  }
+  return String(tip ?? '')
+}
+
 /* ─── alert severity → colour ─── */
 const ALERT_COLOR = {
   critical: '#ef4444',
@@ -405,7 +417,7 @@ export default function WeatherAdvisory({ demoMode }) {
                     {weather.advisory?.map((tip, i) => (
                       <div key={i} className="flex items-start gap-3 p-3 rounded-xl subtle-surface">
                         <div className="num-badge shrink-0">{i + 1}</div>
-                        <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{tip}</p>
+                        <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{tipText(tip)}</p>
                       </div>
                     ))}
                   </div>

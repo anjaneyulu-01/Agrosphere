@@ -12,12 +12,38 @@ import { loc } from './agentIntents'
 
 const wait = (ms) => new Promise(r => setTimeout(r, ms))
 
-/** Smooth-scroll a section into view and let the scroll settle. */
-async function scrollToSection(id) {
+// Height of the fixed navbar, so section headings aren't hidden underneath it.
+const NAV_OFFSET = 80
+
+/**
+ * Smooth-scroll a section so it fits the screen, then let it settle.
+ *
+ * If the whole section fits in the viewport it is centred (so the farmer
+ * sees ALL of it); if it is taller than the screen its heading is pinned
+ * just under the navbar. Uses an absolute window.scrollTo so it lands
+ * deterministically even while React is re-rendering at the same moment.
+ *
+ * @param {boolean} settle  wait for the smooth scroll to finish (default true)
+ */
+async function scrollToSection(id, settle = true) {
   const el = document.getElementById(id)
   if (!el) return
-  el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  await wait(900)
+  const rect       = el.getBoundingClientRect()
+  const sectionTop = rect.top + window.scrollY
+  const vh         = window.innerHeight
+
+  let top
+  if (rect.height <= vh - NAV_OFFSET) {
+    // Whole section fits on screen — centre it (but never tuck the
+    // heading up under the fixed navbar).
+    top = sectionTop - Math.max(NAV_OFFSET, (vh - rect.height) / 2)
+  } else {
+    // Taller than the screen — align its heading just below the navbar.
+    top = sectionTop - NAV_OFFSET
+  }
+
+  window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' })
+  if (settle) await wait(900)
 }
 
 /**
@@ -33,6 +59,7 @@ async function scrollToSection(id) {
  */
 export async function runAgentPlan(intent, lang, query, { onNarrate, onSpeak } = {}) {
   let lastResult = null
+  let lastSection = null   // remember where we navigated, to re-anchor wizards
   // Entities pulled from the question (e.g. which crop), passed to the action.
   const params = intent.extract ? intent.extract(query) : {}
   emitCursor({ active: true, status: '' })
@@ -45,6 +72,7 @@ export async function runAgentPlan(intent, lang, query, { onNarrate, onSpeak } =
       }
 
       if (step.type === 'navigate') {
+        lastSection = step.section
         await scrollToSection(step.section)
         await wait(400)
       } else if (step.type === 'click') {
@@ -67,6 +95,11 @@ export async function runAgentPlan(intent, lang, query, { onNarrate, onSpeak } =
 
         if (el) setTimeout(() => el.classList.remove('agent-target-pulse'), 2500)
         await wait(500)
+
+        // Re-frame the section now that its results/form have rendered, so the
+        // farmer sees the whole thing fit on screen (not just the button it
+        // clicked, and not a layout shifted by the new content).
+        if (lastSection) await scrollToSection(lastSection)
       } else if (step.type === 'speak') {
         // narration handled above
         await wait(300)

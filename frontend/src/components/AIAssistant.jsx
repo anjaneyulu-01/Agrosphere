@@ -137,6 +137,7 @@ export default function AIAssistant({ demoMode }) {
   const voiceOnRef     = useRef(true)
   const loadingRef     = useRef(false)
   const sendRef        = useRef(null)   // always-fresh reference to sendMessage
+  const micActionRef   = useRef(null)   // always-fresh reference to start the mic
 
   // Keep refs in sync with state
   voiceOnRef.current = voiceOn
@@ -151,6 +152,24 @@ export default function AIAssistant({ demoMode }) {
   // ── Pre-warm voice list on mount ──
   useEffect(() => {
     if (window.speechSynthesis) loadVoicesAsync()
+  }, [])
+
+  // ── Listen for the "start mic" event fired by the navbar mic button ──
+  // Scrolls this section into view, then begins listening so farmers can
+  // just tap the top mic and start talking from anywhere on the page.
+  useEffect(() => {
+    const handler = () => {
+      // Scroll to the chat CARD (not the section top) so the whole chat —
+      // header, messages and input — fits on screen under the navbar.
+      const card = document.getElementById('ai-chat-card')
+      if (card) {
+        const top = card.getBoundingClientRect().top + window.scrollY - 80
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' })
+      }
+      setTimeout(() => micActionRef.current?.(), 650)
+    }
+    window.addEventListener('agro:start-mic', handler)
+    return () => window.removeEventListener('agro:start-mic', handler)
   }, [])
 
   // ── Chrome TTS stuck-speaking fix ──
@@ -339,6 +358,10 @@ export default function AIAssistant({ demoMode }) {
     }
   }
 
+  // Keep micActionRef fresh so the navbar mic button always starts a new
+  // listening session (and never accidentally stops an ongoing one).
+  micActionRef.current = () => { if (!listening) toggleMic() }
+
   /* ─────────────────────────── JSX ─────────────────────────── */
 
   const statusText = speaking ? '🔊 Speaking...' : listening ? '🎤 Listening...' : 'Online'
@@ -364,9 +387,9 @@ export default function AIAssistant({ demoMode }) {
         </motion.div>
 
         {/* Chat card */}
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+        <motion.div id="ai-chat-card" initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }} className="card-glass rounded-2xl overflow-hidden flex flex-col"
-          style={{ height: '620px' }}>
+          style={{ height: 'min(620px, calc(100vh - 120px))' }}>
 
           {/* ── Header ── */}
           <div className="flex-shrink-0 flex items-center justify-between px-5 py-3 border-b"

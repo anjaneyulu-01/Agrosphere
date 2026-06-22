@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, Leaf, Sun, Moon, LogOut } from 'lucide-react'
+import { Menu, X, Leaf, Sun, Moon, LogOut, Mic } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 import AuthModal from './AuthModal'
@@ -67,6 +67,14 @@ export default function Navbar({ demoMode }) {
     document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' })
   }
 
+  // Jump to the AI assistant and immediately start listening so farmers
+  // can talk from anywhere on the page with a single tap.
+  const startVoice = () => {
+    setActive('#ai-assistant')
+    setOpen(false)
+    window.dispatchEvent(new Event('agro:start-mic'))
+  }
+
   return (
     <motion.nav
       initial={{ y: -80, opacity: 0 }}
@@ -123,6 +131,24 @@ export default function Navbar({ demoMode }) {
 
           {/* ── Right controls ── */}
           <div className="hidden md:flex items-center gap-3">
+
+            {/* Talk to AI — prominent mic button */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={startVoice}
+              className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold border"
+              style={{
+                background:   'var(--primary)',
+                borderColor:  'var(--primary)',
+                color:        'var(--primary-text)',
+                boxShadow:    '0 0 14px color-mix(in srgb, var(--primary) 45%, transparent)',
+              }}
+              title="Talk to AgroSphere AI"
+            >
+              <Mic className="w-4 h-4" />
+              <span className="hidden lg:inline">Talk to AI</span>
+            </motion.button>
 
             {/* Language */}
             <div
@@ -246,6 +272,22 @@ export default function Navbar({ demoMode }) {
 
           {/* ── Mobile hamburger ── */}
           <div className="md:hidden flex items-center gap-2">
+            {/* Talk to AI — mic button (always visible on mobile) */}
+            <motion.button
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.92 }}
+              onClick={startVoice}
+              className="w-9 h-9 rounded-xl flex items-center justify-center border"
+              style={{
+                background:   'var(--primary)',
+                borderColor:  'var(--primary)',
+                color:        'var(--primary-text)',
+                boxShadow:    '0 0 12px color-mix(in srgb, var(--primary) 45%, transparent)',
+              }}
+              title="Talk to AgroSphere AI"
+            >
+              <Mic className="w-4 h-4" />
+            </motion.button>
             <motion.button
               whileHover={{ scale: 1.08 }}
               whileTap={{ scale: 0.92 }}

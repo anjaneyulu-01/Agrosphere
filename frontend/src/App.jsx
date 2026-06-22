@@ -171,13 +171,14 @@ export default function App() {
 
         <main>
           <section id="home">       <ErrorBoundary name="Home"><Hero /></ErrorBoundary></section>
+          {/* AI Assistant placed right after the hero so farmers can talk to it immediately */}
+          <section id="ai-assistant"><ErrorBoundary name="AI Assistant"><AIAssistant demoMode={demoMode} /></ErrorBoundary></section>
           <section id="features">   <ErrorBoundary name="Features"><ProblemSolution /></ErrorBoundary></section>
           <section id="crop-doctor"><ErrorBoundary name="Crop Doctor"><CropDoctor demoMode={demoMode} /></ErrorBoundary></section>
           <section id="weather">    <ErrorBoundary name="Weather"><WeatherAdvisory demoMode={demoMode} /></ErrorBoundary></section>
           <section id="market">     <ErrorBoundary name="Market"><MandiPrices demoMode={demoMode} /></ErrorBoundary></section>
           <section id="irrigation"> <ErrorBoundary name="Irrigation"><SmartIrrigation demoMode={demoMode} /></ErrorBoundary></section>
           <section id="schemes">    <ErrorBoundary name="Schemes"><GovernmentSchemes demoMode={demoMode} /></ErrorBoundary></section>
-          <section id="ai-assistant"><ErrorBoundary name="AI Assistant"><AIAssistant demoMode={demoMode} /></ErrorBoundary></section>
           <section id="yield">      <ErrorBoundary name="Yield"><YieldPrediction demoMode={demoMode} /></ErrorBoundary></section>
           <section id="soil">       <ErrorBoundary name="Soil"><SoilAnalysis demoMode={demoMode} /></ErrorBoundary></section>
           <section id="livestock">  <ErrorBoundary name="Livestock"><LivestockHealth demoMode={demoMode} /></ErrorBoundary></section>
